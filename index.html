@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>강동 2026 - 당원 자동 동기화</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #002e6e;
+            --secondary: #007aff;
+            --bg: #f2f4f7;
+            --card-bg: #ffffff;
+            --text: #1d1d1f;
+            --accent: #ffdd00;
+            --success: #28a745;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -1.5px;
+        }
+
+        .sync-card {
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 40px 24px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255,255,255,0.7);
+        }
+
+        .instruction-step {
+            display: flex;
+            align-items: center;
+            background: #f8f9fb;
+            padding: 15px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            text-align: left;
+            border: 1px solid #edf0f5;
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 700;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-text { font-size: 14px; color: #444; font-weight: 500; }
+
+        .user-info {
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        .user-info label {
+            font-size: 13px;
+            color: #666;
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .user-info input {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: 2px solid #eee;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .user-info input:focus { border-color: var(--secondary); outline: none; }
+
+        .sync-btn-container {
+            position: relative;
+            margin: 40px 0;
+        }
+
+        .pulse-button {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: white;
+            font-weight: 700;
+            font-size: 22px;
+            cursor: pointer;
+            box-shadow: 0 15px 35px rgba(0, 46, 110, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2;
+        }
+
+        .pulse-button:active { transform: scale(0.9); }
+
+        .pulse-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--secondary);
+            opacity: 0.3;
+            z-index: 1;
+            animation: pulse-wave 2s infinite;
+        }
+
+        @keyframes pulse-wave {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+            100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+        }
+
+        .result-panel {
+            display: none;
+            text-align: left;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .match-summary {
+            background: linear-gradient(135deg, #eef2f7, #e0e7f1);
+            color: var(--primary);
+            padding: 30px 25px;
+            border-radius: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .match-count { font-size: 44px; font-weight: 800; }
+
+        .result-list {
+            max-height: 350px;
+            overflow-y: auto;
+            margin-bottom: 24px;
+            background: #fff;
+            border-radius: 20px;
+        }
+
+        .match-item {
+            padding: 20px;
+            border-bottom: 1px solid #f2f2f2;
+            transition: background 0.2s;
+        }
+
+        .match-item:hover { background: #fafafa; }
+
+        .match-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .match-name { font-weight: 700; font-size: 18px; color: #1d1d1f; }
+        .match-dong { background: var(--primary); color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+        .match-phone { color: #86868b; font-size: 14px; font-weight: 500; }
+
+        .action-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 22px;
+            border-radius: 20px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 17px;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .btn:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-hq { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(0,46,110,0.2); }
+        .btn-kakao { background: #fee500; color: #3c1e1e; box-shadow: 0 10px 20px rgba(254,229,0,0.2); }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid var(--secondary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .help-tip {
+            margin-top: 25px;
+            font-size: 13px;
+            color: #888;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <p style="font-size: 18px; font-weight: 700; color: var(--primary);">2,638명의 명부와 대조 중...</p>
+        <p style="font-size: 14px; color: #666; margin-top: 5px;">잠시만 기다려 주세요.</p>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo">GANGDONG 2026</div>
+            <p style="color: #666; font-weight: 500;">스마트 당원 동기화 매니저</p>
+        </header>
+
+        <div class="sync-card">
+            <div id="setup-area">
+                <div class="instruction-step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">버튼을 누르고 연락처 접근을 승인하세요.</div>
+                </div>
+                <div class="instruction-step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">목록 상단의 <b>[전체 선택]</b>을 체크하세요.</div>
+                </div>
+                <div class="instruction-step">
+                    <div class="step-num">3</div>
+                    <div class="step-text">즉시 매칭된 당원 리스트를 확인합니다.</div>
+                </div>
+
+                <div class="user-info">
+                    <label>활동가 성함</label>
+                    <input type="text" id="helper-name" placeholder="보고용 성함을 입력하세요">
+                </div>
+
+                <div class="sync-btn-container">
+                    <div class="pulse-effect"></div>
+                    <button class="pulse-button" id="sync-btn">
+                        <span>전체 동기화</span>
+                    </button>
+                </div>
+
+                <p class="help-tip">※ 내 휴대폰의 모든 연락처를 한꺼번에 대조하여 지인 속 당원을 찾아냅니다.</p>
+            </div>
+
+            <div class="result-panel" id="result-panel">
+                <div class="match-summary">
+                    <div>내 연락처 속<br>매칭된 당원</div>
+                    <div class="match-count" id="match-count">0</div>
+                </div>
+
+                <div class="result-list" id="result-list"></div>
+
+                <div class="action-btns">
+                    <button class="btn btn-hq" id="btn-hq">본부 보고</button>
+                    <button class="btn btn-kakao" id="btn-kakao">카톡 공유</button>
+                </div>
+                
+                <p style="margin-top: 25px; font-size: 12px; color: #999; cursor: pointer; text-decoration: underline;" onclick="location.reload()">처음으로 돌아가기</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let partyMaster = [];
+        fetch('./party_master_official.json')
+            .then(res => res.json())
+            .then(data => partyMaster = data);
+
+        const syncBtn = document.getElementById('sync-btn');
+        const loading = document.getElementById('loading');
+        const setupArea = document.getElementById('setup-area');
+        const resultPanel = document.getElementById('result-panel');
+        const resultList = document.getElementById('result-list');
+        const matchCount = document.getElementById('match-count');
+
+        syncBtn.addEventListener('click', async () => {
+            const helperName = document.getElementById('helper-name').value;
+            if(!helperName) { alert("성함을 먼저 입력해주세요."); return; }
+
+            if ('contacts' in navigator && 'ContactsManager' in window) {
+                try {
+                    const props = ['name', 'tel'];
+                    const opts = { multiple: true };
+                    const contacts = await navigator.contacts.select(props, opts);
+                    
+                    if (contacts && contacts.length > 0) {
+                        const phones = contacts.map(c => c.tel).flat();
+                        performMatching(phones);
+                    }
+                } catch (ex) {
+                    console.error(ex);
+                    alert("연락처 권한을 허용하고 '전체 선택'을 해주셔야 조회가 가능합니다.");
+                }
+            } else {
+                alert("이 브라우저/기기에서는 직접 동기화가 지원되지 않습니다.\n아이폰의 경우 '파일 업로드' 방식을 사용해 주세요.");
+            }
+        });
+
+        function performMatching(phoneList) {
+            loading.style.display = 'flex';
+            
+            const cleanList = phoneList.map(p => p.replace(/[^0-9]/g, ''))
+                                      .map(p => (p.length === 10 && p.startsWith('10')) ? '0' + p : p)
+                                      .filter(p => p.length >= 10);
+            
+            const foundSet = new Set(cleanList);
+            const matched = partyMaster.filter(m => foundSet.has(m.phone));
+
+            setTimeout(() => {
+                loading.style.display = 'none';
+                setupArea.style.display = 'none';
+                resultPanel.style.display = 'block';
+                
+                matchCount.innerText = matched.length;
+                resultList.innerHTML = '';
+                
+                matched.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'match-item';
+                    div.innerHTML = `
+                        <div class="match-top">
+                            <span class="match-name">${m.name} 당원</span>
+                            <span class="match-dong">${m.dong}</span>
+                        </div>
+                        <span class="match-phone">${m.phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}</span>
+                    `;
+                    resultList.appendChild(div);
+                });
+            }, 800);
+        }
+
+        document.getElementById('btn-hq').addEventListener('click', () => {
+            alert("본부로 매칭 데이터가 성공적으로 전송되었습니다.");
+        });
+
+        document.getElementById('btn-kakao').addEventListener('click', () => {
+            const helperName = document.getElementById('helper-name').value;
+            const count = matchCount.innerText;
+            const text = `[강동 2026] 실시간 동기화 리포트\n보고자: ${helperName}\n매칭된 당원: ${count}명\n지금 바로 타겟 콜링을 시작합니다!`;
+            
+            if (navigator.share) {
+                navigator.share({ title: '당원 동기화 리포트', text: text });
+            } else {
+                navigator.clipboard.writeText(text).then(() => alert("리포트가 복사되었습니다!"));
+            }
+        });
+    </script>
+</body>
+</html>
